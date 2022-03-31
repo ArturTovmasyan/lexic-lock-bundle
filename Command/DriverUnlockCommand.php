@@ -2,9 +2,10 @@
 
 namespace Lexik\Bundle\MaintenanceBundle\Command;
 
+use Lexik\Bundle\MaintenanceBundle\Drivers\DriverFactory;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 
 /**
  * Create an unlock action
@@ -12,15 +13,29 @@ use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
  * @package LexikMaintenanceBundle
  * @author  Gilles Gauthier <g.gauthier@lexik.fr>
  */
-class DriverUnlockCommand extends ContainerAwareCommand
+class DriverUnlockCommand extends Command
 {
+    protected static $defaultName = 'lexik:maintenance:unlock';
+
+    public $driverFactory;
+
+    /**
+     * @param \ImtCRMBundle\Component\Report\Services\ReportService $reportService
+     * @param \Doctrine\ORM\EntityManager                           $em
+     */
+    public function __construct(DriverFactory $driverFactory)
+    {
+        $this->driverFactory = $driverFactory;
+
+        parent::__construct();
+    }
+    
     /**
      * {@inheritdoc}
      */
     protected function configure()
     {
         $this
-            ->setName('lexik:maintenance:unlock')
             ->setDescription('Unlock access to the site while maintenance...')
             ->setHelp(<<<EOT
     You can execute the unlock without a warning message which you need to interact with:
@@ -39,11 +54,13 @@ EOT
             return;
         }
 
-        $driver = $this->getContainer()->get('lexik_maintenance.driver.factory')->getDriver();
+        $driver = $this->driverFactory->getDriver();
 
         $unlockMessage = $driver->getMessageUnlock($driver->unlock());
 
         $output->writeln('<info>'.$unlockMessage.'</info>');
+
+        return 0;
     }
 
     /**
